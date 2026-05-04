@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InventoryPro | Products</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="main-content fade-in">
+        <div class="page-header">
+            <h1 class="page-title">Products</h1>
+            <button class="btn" onclick="openProductModal()"><i class="fa-solid fa-plus"></i> Add Product</button>
+        </div>
+        
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Price</th>
+                        <th>Stock</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="products-table-body">
+                    <!-- Products populated here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Product Modal -->
+    <div class="modal-overlay" id="product-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modal-title">Add Product</h2>
+                <button class="close-btn" onclick="closeProductModal()">&times;</button>
+            </div>
+            <form id="product-form">
+                <input type="hidden" id="form-mode" value="add">
+                <div class="form-group">
+                    <label>Product ID</label>
+                    <input type="number" id="prod-id" required>
+                </div>
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" id="prod-name" required>
+                </div>
+                <div class="form-group">
+                    <label>Price</label>
+                    <input type="number" step="0.01" id="prod-price" required>
+                </div>
+                <div class="form-group">
+                    <label>Stock Quantity</label>
+                    <input type="number" id="prod-stock" required>
+                </div>
+                <button type="submit" class="btn" style="width: 100%;"><i class="fa-solid fa-floppy-disk"></i> Save Product</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        let productsList = [];
+
+        async function loadProducts() {
+            try {
+                productsList = await api.getProducts();
+                renderTable();
+            } catch (err) {
+                console.error("Failed to load products", err);
+            }
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('products-table-body');
+            tbody.innerHTML = '';
+            productsList.forEach(p => {
+                const stockColor = p.Stock_Quantity < 10 ? 'var(--danger)' : 'inherit';
+                const row = `
+                    <tr>
+                        <td>${p.Product_ID}</td>
+                        <td style="font-weight: 500;">${p.Name}</td>
+                        <td>₹${parseFloat(p.Price).toFixed(2)}</td>
+                        <td style="color: ${stockColor}; font-weight: 500;">${p.Stock_Quantity}</td>
+                        <td>
+                            <button class="btn btn-small btn-outline" onclick="editProduct(${p.Product_ID})"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
+                            <button class="btn btn-small btn-danger" onclick="deleteProduct(${p.Product_ID})"><i class="fa-solid fa-trash"></i> Delete</button>
+                        </td>
+                    </tr>
+                `;
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+        }
+
+        function openProductModal() {
+            document.getElementById('product-form').reset();
+            document.getElementById('form-mode').value = 'add';
+            document.getElementById('prod-id').readOnly = false;
+            document.getElementById('modal-title').innerText = 'Add Product';
+            document.getElementById('product-modal').classList.add('active');
+        }
+
+        function closeProductModal() {
+            document.getElementById('product-modal').classList.remove('active');
+        }
+
+        function editProduct(id) {
+            const prod = productsList.find(p => p.Product_ID === id);
+            if (prod) {
+                document.getElementById('form-mode').value = 'edit';
+                document.getElementById('prod-id').value = prod.Product_ID;
+                document.getElementById('prod-id').readOnly = true;
+                document.getElementById('prod-name').value = prod.Name;
+                document.getElementById('prod-price').value = prod.Price;
+                document.getElementById('prod-stock').value = prod.Stock_Quantity;
+                document.getElementById('modal-title').innerText = 'Edit Product';
+                document.getElementById('product-modal').classList.add('active');
+            }
+        }
+
+        async function deleteProduct(id) {
+            if (confirm('Are you sure you want to delete this product?')) {
+                try {
+                    await api.deleteProduct(id);
+                    loadProducts();
+                } catch (err) {
+                    alert('Error deleting product. Check if it exists in logs or transactions.');
+                }
+            }
+        }
+
+        document.getElementById('product-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const mode = document.getElementById('form-mode').value;
+            const data = {
+                id: document.getElementById('prod-id').value,
+                name: document.getElementById('prod-name').value,
+                price: document.getElementById('prod-price').value,
+                stock: document.getElementById('prod-stock').value
+            };
+
+            try {
+                if (mode === 'add') {
+                    await api.addProduct(data);
+                } else {
+                    await api.updateProduct(data.id, data);
+                }
+                closeProductModal();
+                loadProducts();
+            } catch (err) {
+                alert('Error saving product');
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', loadProducts);
+    </script>
+</body>
+</html>

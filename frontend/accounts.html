@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InventoryPro | Account Creation</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .accounts-layout {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 24px;
+            align-items: start;
+        }
+        .form-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-md);
+            padding: 28px;
+            position: sticky;
+            top: 32px;
+        }
+        .form-card h2 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .form-card h2 i {
+            color: var(--accent);
+            font-size: 15px;
+        }
+        .role-toggle {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        .role-btn {
+            flex: 1;
+            padding: 10px 16px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--bg-surface);
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .role-btn.active {
+            border-color: var(--accent);
+            background: var(--accent-light);
+            color: var(--accent);
+            font-weight: 600;
+        }
+        .role-btn:hover:not(.active) {
+            background: var(--bg-surface-hover);
+        }
+        .notice-box {
+            background: var(--accent-light);
+            border: 1px solid rgba(244, 81, 30, 0.2);
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            font-size: 12px;
+            color: var(--accent);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+        .notice-box i { margin-top: 1px; flex-shrink: 0; }
+        .toast {
+            position: fixed;
+            bottom: 32px;
+            right: 32px;
+            padding: 14px 20px;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: var(--shadow-lg);
+            z-index: 999;
+            transform: translateY(80px);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.success { background: var(--success-bg); color: var(--success); border: 1px solid #b7dfbf; }
+        .toast.error { background: var(--danger-bg); color: var(--danger); border: 1px solid #f5b8b7; }
+        .section-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-disabled);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin: 20px 0 12px;
+        }
+        .divider { border: none; border-top: 1px solid var(--border-light); margin: 20px 0; }
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-disabled);
+        }
+        .empty-state i { font-size: 36px; margin-bottom: 12px; display: block; }
+        .empty-state p { font-size: 14px; }
+        .account-row td:first-child { font-weight: 500; color: var(--text-primary); }
+        .btn-icon {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 6px 8px;
+            border-radius: 6px;
+            color: var(--text-secondary);
+            transition: all 0.15s ease;
+            font-size: 14px;
+        }
+        .btn-icon:hover { background: var(--danger-bg); color: var(--danger); }
+        .accounts-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-content fade-in">
+        <div class="page-header">
+            <h1 class="page-title"><i class="fa-solid fa-user-gear" style="color: var(--accent); font-size: 20px;"></i> Account Management</h1>
+        </div>
+
+        <div class="accounts-layout">
+
+            <!-- Left: Create Account Form -->
+            <div class="form-card">
+                <h2><i class="fa-solid fa-user-plus"></i> Create New Account</h2>
+
+                <p class="section-label">Account Role</p>
+                <div class="role-toggle">
+                    <button class="role-btn active" id="btn-manager" onclick="selectRole('Manager')">
+                        <i class="fa-solid fa-shield-halved"></i> Manager
+                    </button>
+                    <button class="role-btn" id="btn-cashier" onclick="selectRole('Cashier')">
+                        <i class="fa-solid fa-cash-register"></i> Cashier
+                    </button>
+                </div>
+
+                <div class="notice-box">
+                    <i class="fa-solid fa-circle-info"></i>
+                    <span>This creates both a <strong>login account</strong> and an <strong>employee record</strong> in the system.</span>
+                </div>
+
+                <form id="account-form">
+                    <input type="hidden" id="selected-role" value="Manager">
+
+                    <p class="section-label">Login Credentials</p>
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" id="acc-username" placeholder="e.g. john_manager" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="acc-password" placeholder="Set a password" required>
+                    </div>
+
+                    <hr class="divider">
+                    <p class="section-label">Employee Details</p>
+
+                    <div class="form-group">
+                        <label>Employee ID</label>
+                        <input type="number" id="acc-emp-id" placeholder="e.g. 10" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" id="acc-name" placeholder="e.g. John Smith" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Phone Number <span style="color: var(--text-disabled); font-weight: 400;">(optional)</span></label>
+                        <input type="tel" id="acc-phone" placeholder="e.g. 9876543210">
+                    </div>
+
+                    <button type="submit" class="btn" style="width: 100%; margin-top: 8px;" id="submit-btn">
+                        <i class="fa-solid fa-user-plus"></i> Create Account
+                    </button>
+                </form>
+            </div>
+
+            <!-- Right: Accounts Table -->
+            <div>
+                <div class="accounts-header">
+                    <h2 style="font-size: 16px; font-weight: 600; color: var(--text-primary);">Existing Accounts</h2>
+                    <button class="btn btn-outline btn-small" onclick="loadAccounts()">
+                        <i class="fa-solid fa-rotate-right"></i> Refresh
+                    </button>
+                </div>
+                <div class="table-container" style="padding: 0;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>Full Name</th>
+                                <th>Role</th>
+                                <th>Phone</th>
+                                <th>Emp ID</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="accounts-table-body">
+                            <tr>
+                                <td colspan="6">
+                                    <div class="empty-state">
+                                        <i class="fa-solid fa-users-slash"></i>
+                                        <p>Loading accounts...</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
+
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        function selectRole(role) {
+            document.getElementById('selected-role').value = role;
+            document.getElementById('btn-manager').classList.toggle('active', role === 'Manager');
+            document.getElementById('btn-cashier').classList.toggle('active', role === 'Cashier');
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.innerHTML = `<i class="fa-solid fa-${type === 'success' ? 'circle-check' : 'circle-exclamation'}"></i> ${message}`;
+            toast.className = `toast ${type} show`;
+            setTimeout(() => { toast.className = 'toast'; }, 3500);
+        }
+
+        async function loadAccounts() {
+            const tbody = document.getElementById('accounts-table-body');
+            try {
+                const accounts = await api.getAccounts();
+                tbody.innerHTML = '';
+
+                if (!accounts || accounts.length === 0) {
+                    tbody.innerHTML = `
+                        <tr><td colspan="6">
+                            <div class="empty-state">
+                                <i class="fa-solid fa-users-slash"></i>
+                                <p>No accounts found. Create one to get started.</p>
+                            </div>
+                        </td></tr>
+                    `;
+                    return;
+                }
+
+                accounts.forEach(acc => {
+                    const roleColor = acc.role === 'Manager'
+                        ? 'style="background: var(--accent-light); color: var(--accent);"'
+                        : 'style="background: var(--success-bg); color: var(--success);"';
+                    const row = `
+                        <tr class="account-row">
+                            <td>${acc.username}</td>
+                            <td>${acc.Name || '—'}</td>
+                            <td><span class="badge" ${roleColor}>${acc.role}</span></td>
+                            <td>${acc.Phone_No || '—'}</td>
+                            <td>${acc.Employee_ID || '—'}</td>
+                            <td>
+                                <button class="btn-icon" onclick="deleteAccount(${acc.id}, '${acc.username}')" title="Delete account">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.insertAdjacentHTML('beforeend', row);
+                });
+            } catch (err) {
+                tbody.innerHTML = `
+                    <tr><td colspan="6">
+                        <div class="empty-state">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                            <p>Could not load accounts. Is the server running?</p>
+                        </div>
+                    </td></tr>
+                `;
+            }
+        }
+
+        async function deleteAccount(id, username) {
+            if (!confirm(`Delete account "${username}"? This will only remove login credentials, not the employee record.`)) return;
+            try {
+                const res = await api.deleteAccount(id);
+                if (res.success) {
+                    showToast(`Account "${username}" deleted.`, 'success');
+                    loadAccounts();
+                } else {
+                    showToast(res.error || 'Failed to delete account.', 'error');
+                }
+            } catch (err) {
+                showToast('Server error.', 'error');
+            }
+        }
+
+        document.getElementById('account-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submit-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Creating...';
+
+            const data = {
+                username:   document.getElementById('acc-username').value.trim(),
+                password:   document.getElementById('acc-password').value,
+                role:       document.getElementById('selected-role').value,
+                name:       document.getElementById('acc-name').value.trim(),
+                phone:      document.getElementById('acc-phone').value.trim(),
+                employeeId: document.getElementById('acc-emp-id').value
+            };
+
+            const res = await api.createAccount(data);
+
+            if (res.success) {
+                showToast('Account created successfully!', 'success');
+                document.getElementById('account-form').reset();
+                selectRole('Manager');
+                loadAccounts();
+            } else {
+                showToast(res.error || 'Failed to create account.', 'error');
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-user-plus"></i> Create Account';
+        });
+
+        document.addEventListener('DOMContentLoaded', loadAccounts);
+    </script>
+</body>
+</html>

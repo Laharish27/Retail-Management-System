@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InventoryPro | Checkout</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .checkout-container {
+            max-width: 720px;
+            margin: 0 auto;
+        }
+        .checkout-box {
+            padding: 32px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-md);
+        }
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-light);
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+        .summary-item:last-child {
+            border-bottom: none;
+        }
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 2px solid var(--border);
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .payment-methods {
+            margin-top: 28px;
+            display: flex;
+            gap: 12px;
+        }
+        .method-card {
+            flex: 1;
+            padding: 16px;
+            text-align: center;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: border-color 0.2s ease, background 0.2s ease;
+        }
+        .method-card h4 {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+        .method-card.selected {
+            border-color: var(--accent);
+            background: var(--accent-light);
+        }
+        .method-card.selected h4 {
+            color: var(--accent);
+            font-weight: 600;
+        }
+        .method-card:hover:not(.selected) {
+            background: var(--bg-surface-hover);
+        }
+    </style>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="main-content fade-in">
+        <div class="page-header">
+            <h1 class="page-title">Checkout</h1>
+            <button class="btn btn-outline" onclick="window.history.back()"><i class="fa-solid fa-arrow-left"></i> Back to Cart</button>
+        </div>
+        
+        <div class="checkout-container">
+            <div class="checkout-box">
+                <h2 style="margin-bottom: 16px; font-size: 16px; font-weight: 600;">Order Summary</h2>
+                <div id="checkout-items">
+                    <!-- Items populated here -->
+                </div>
+                
+                <div class="total-row">
+                    <span>Total</span>
+                    <span id="checkout-total">₹0.00</span>
+                </div>
+
+                <h3 style="margin-top: 32px; margin-bottom: 12px; font-size: 14px; font-weight: 500; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.3px;">Payment Method</h3>
+                <div class="payment-methods">
+                    <div class="method-card selected" onclick="selectMethod(this)">
+                        <h4>Cash</h4>
+                    </div>
+                    <div class="method-card" onclick="selectMethod(this)">
+                        <h4>Card</h4>
+                    </div>
+                    <div class="method-card" onclick="selectMethod(this)">
+                        <h4>UPI</h4>
+                    </div>
+                </div>
+
+                <button class="btn" style="margin-top: 32px; width: 100%; padding: 14px; font-size: 15px;" onclick="processPayment()"><i class="fa-solid fa-check"></i> Complete Payment</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="modal-overlay" id="success-modal">
+        <div class="modal" style="text-align: center; padding: 48px 32px;">
+            <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--success-bg); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                <i class="fa-solid fa-check" style="font-size: 24px; color: var(--success);"></i>
+            </div>
+            <h2 style="font-size: 20px; font-weight: 600; margin-bottom: 8px;">Payment Successful</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 28px; font-size: 14px;">Transaction completed and inventory updated.</p>
+            <button class="btn" onclick="window.location.href='dashboard.html'">Go to Dashboard</button>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        function selectMethod(el) {
+            document.querySelectorAll('.method-card').forEach(card => card.classList.remove('selected'));
+            el.classList.add('selected');
+        }
+
+        async function processPayment() {
+            const cartItems = JSON.parse(localStorage.getItem('cartItems')) || [];
+            const cartTotal = localStorage.getItem('cartTotal');
+            const user = JSON.parse(localStorage.getItem('user'));
+
+            if (cartItems.length === 0) {
+                alert('Cart is empty!');
+                return;
+            }
+
+            const items = cartItems.map(item => ({
+                productId: item.productId,
+                quantity: item.quantity,
+                price: item.price
+            }));
+
+            try {
+                const res = await api.processPayment(user.id || user.Employee_ID, items, cartTotal);
+                if (res.success) {
+                    localStorage.removeItem('cartItems');
+                    localStorage.removeItem('cartTotal');
+                    document.getElementById('success-modal').classList.add('active');
+                } else {
+                    alert('Payment failed: ' + res.error);
+                }
+            } catch (err) {
+                alert('Server error during payment processing.');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const cartItems = JSON.parse(localStorage.getItem('cartItems')) || [];
+            const cartTotal = localStorage.getItem('cartTotal') || 0;
+            
+            const container = document.getElementById('checkout-items');
+            cartItems.forEach(item => {
+                const row = `
+                    <div class="summary-item">
+                        <span>${item.name} × ${item.quantity}</span>
+                        <span style="font-weight: 500;">₹${(item.price * item.quantity).toFixed(2)}</span>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', row);
+            });
+
+            document.getElementById('checkout-total').innerText = '₹' + parseFloat(cartTotal).toFixed(2);
+        });
+    </script>
+</body>
+</html>

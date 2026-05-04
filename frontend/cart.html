@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InventoryPro | Cart & POS</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .cart-layout {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+        }
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+            gap: 12px;
+        }
+        .product-card {
+            padding: 20px 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: box-shadow 0.2s ease, border-color 0.2s ease;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-md);
+        }
+        .product-card:hover {
+            box-shadow: var(--shadow-md);
+            border-color: var(--accent);
+        }
+        .cart-panel {
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 120px);
+            position: sticky;
+            top: 32px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-md);
+        }
+        .cart-items {
+            flex-grow: 1;
+            overflow-y: auto;
+            margin-bottom: 16px;
+        }
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-light);
+        }
+        .cart-item:last-child {
+            border-bottom: none;
+        }
+        .cart-item-info h4 {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 2px;
+        }
+        .cart-item-price {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+        .cart-summary {
+            border-top: 1px solid var(--border);
+            padding-top: 16px;
+        }
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        .summary-row.total {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-top: 4px;
+        }
+        .qty-controls {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 2px 4px;
+        }
+        .qty-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 2px 6px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 4px;
+        }
+        .qty-btn:hover {
+            background: var(--bg-surface-hover);
+            color: var(--text-primary);
+        }
+        .remove-btn {
+            background: none;
+            border: none;
+            color: var(--text-disabled);
+            cursor: pointer;
+            padding: 4px 6px;
+            font-size: 16px;
+            border-radius: 4px;
+        }
+        .remove-btn:hover {
+            color: var(--danger);
+            background: var(--danger-bg);
+        }
+    </style>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="main-content fade-in">
+        <div class="page-header">
+            <h1 class="page-title">Point of Sale</h1>
+        </div>
+        
+        <div class="cart-layout">
+            <!-- Left: Products -->
+            <div>
+                <h2 style="margin-bottom: 16px; font-size: 14px; font-weight: 500; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Available Products</h2>
+                <div class="product-grid" id="product-grid">
+                    <!-- Products populated here -->
+                </div>
+            </div>
+
+            <!-- Right: Cart Panel -->
+            <div class="cart-panel">
+                <h2 style="margin-bottom: 16px; font-size: 16px; font-weight: 600; color: var(--text-primary);">Current Order</h2>
+                <p style="text-align: center; color: var(--text-disabled); margin-top: 40px; font-size: 14px;" id="empty-cart-msg">No items added yet</p>
+                <div class="cart-items" id="cart-items">
+                    <!-- Cart items here -->
+                </div>
+                <div class="cart-summary">
+                    <div class="summary-row">
+                        <span>Items</span>
+                        <span id="cart-item-count">0</span>
+                    </div>
+                    <div class="summary-row total">
+                        <span>Total</span>
+                        <span id="cart-total">₹0.00</span>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 16px;">
+                        <button class="btn btn-outline" style="flex: 1;" onclick="clearCart()">Clear</button>
+                        <button class="btn" style="flex: 2;" onclick="proceedToPayment()" id="checkout-btn" disabled><i class="fa-solid fa-arrow-right"></i> Checkout</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        let products = [];
+        let cart = [];
+
+        async function loadProducts() {
+            try {
+                products = await api.getProducts();
+                console.log("Products from API:", products);
+                renderProductGrid();
+            } catch (err) {
+                console.error("Failed to load products", err);
+            }
+        }
+
+        function renderProductGrid() {
+            const grid = document.getElementById('product-grid');
+            grid.innerHTML = '';
+            products.forEach(p => {
+                if (p.Stock_Quantity > 0) {
+                    const card = `
+                        <div class="product-card" onclick="addToCartById(${p.Product_ID})">
+                            <h3 style="font-size: 14px; font-weight: 500; margin-bottom: 8px; color: var(--text-primary);">${p.Name}</h3>
+                            <p style="color: var(--accent); font-weight: 600; font-size: 15px;">₹${Number(p.Price).toFixed(2)}</p>
+                            <p style="color: var(--text-disabled); font-size: 11px; margin-top: 6px;">Stock: ${p.Stock_Quantity}</p>
+                        </div>
+                    `;
+                    grid.insertAdjacentHTML('beforeend', card);
+                }
+            });
+        }
+
+        function addToCartById(id) {
+            const product = products.find(p => p.Product_ID == id);
+            if (product) addToCart(product);
+        }
+
+        function addToCart(product) {
+            console.log("Clicked product:", product);
+
+            const existing = cart.find(item => item.productId == product.Product_ID);
+
+            if (existing) {
+                existing.quantity += 1;
+            } else {
+                cart.push({
+                    productId: product.Product_ID,
+                    name: product.Name,
+                    price: Number(product.Price),
+                    quantity: 1
+                });
+            }
+
+            console.log("Updated cart:", cart);
+            renderCart();
+        }
+
+        function removeFromCart(productId) {
+            cart = cart.filter(item => item.productId != productId);
+            console.log("Item Removed. Cart Updated:", cart);
+            renderCart();
+        }
+
+        function updateQuantity(productId, delta) {
+            const product = products.find(p => p.Product_ID == productId);
+            const cartItem = cart.find(item => item.productId == productId);
+            
+            if (cartItem) {
+                const newQuantity = cartItem.quantity + delta;
+                if (newQuantity > 0 && newQuantity <= product.Stock_Quantity) {
+                    cartItem.quantity = newQuantity;
+                } else if (newQuantity <= 0) {
+                    removeFromCart(productId);
+                    return;
+                } else {
+                    alert('Not enough stock!');
+                }
+                console.log("Quantity Updated. Cart:", cart);
+                renderCart();
+            }
+        }
+
+        
+        function clearCart() {
+            cart = [];
+            renderCart();
+        }
+
+        function renderCart() {
+            const cartContainer = document.getElementById('cart-items');
+            const emptyMsg = document.getElementById('empty-cart-msg');
+            const checkoutBtn = document.getElementById('checkout-btn');
+            
+            if (cart.length === 0) {
+                cartContainer.innerHTML = '';
+                emptyMsg.style.display = 'block';
+                checkoutBtn.disabled = true;
+                document.getElementById('cart-total').innerText = '₹0.00';
+                document.getElementById('cart-item-count').innerText = '0';
+                return;
+            }
+
+            emptyMsg.style.display = 'none';
+            checkoutBtn.disabled = false;
+            cartContainer.innerHTML = '';
+            
+            let total = 0;
+            let totalItemsCount = 0;
+
+            cart.forEach(item => {
+                if (!item.name || isNaN(item.price)) {
+                    console.error("Invalid cart item:", item);
+                }
+                
+                const itemTotal = item.price * item.quantity;
+                total += itemTotal;
+                totalItemsCount += item.quantity;
+                
+                const cartHTML = `
+                    <div class="cart-item">
+                        <div class="cart-item-info">
+                            <h4>${item.name}</h4>
+                            <span class="cart-item-price">₹${parseFloat(item.price).toFixed(2)} each</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div class="qty-controls">
+                                <button class="qty-btn" onclick="updateQuantity(${item.productId}, -1)">−</button>
+                                <span style="font-size: 13px; min-width: 18px; text-align: center; font-weight: 500;">${item.quantity}</span>
+                                <button class="qty-btn" onclick="updateQuantity(${item.productId}, 1)">+</button>
+                            </div>
+                            <span style="font-weight: 600; min-width: 60px; text-align: right; font-size: 14px;">₹${itemTotal.toFixed(2)}</span>
+                            <button class="remove-btn" onclick="removeFromCart(${item.productId})">&times;</button>
+                        </div>
+                    </div>
+                `;
+                cartContainer.insertAdjacentHTML('beforeend', cartHTML);
+            });
+
+            document.getElementById('cart-total').innerText = '₹' + total.toFixed(2);
+            document.getElementById('cart-item-count').innerText = totalItemsCount;
+            localStorage.setItem('cartItems', JSON.stringify(cart));
+            localStorage.setItem('cartTotal', total);
+        }
+
+        function proceedToPayment() {
+            window.location.href = 'payment.html';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadProducts();
+            const savedCart = localStorage.getItem('cartItems');
+            if (savedCart) {
+                cart = JSON.parse(savedCart);
+                renderCart();
+            }
+        });
+    </script>
+</body>
+</html>

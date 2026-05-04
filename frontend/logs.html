@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InventoryPro | Inventory Logs</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="main-content fade-in">
+        <div class="page-header">
+            <h1 class="page-title">Inventory Logs</h1>
+        </div>
+        
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Log ID</th>
+                        <th>Product Name</th>
+                        <th>Employee</th>
+                        <th>Quantity Adjusted</th>
+                        <th>Change Type</th>
+                    </tr>
+                </thead>
+                <tbody id="logs-table-body">
+                    <!-- Logs populated here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        async function loadLogs() {
+            try {
+                const logs = await api.getInventoryLogs();
+                const tbody = document.getElementById('logs-table-body');
+                tbody.innerHTML = '';
+                logs.forEach(log => {
+                    const typeColor = log.Quantity_Adjusted > 0 ? 'badge-in-stock' : 'badge-low-stock';
+                    const sign = log.Quantity_Adjusted > 0 ? '+' : '';
+                    const row = `
+                        <tr>
+                            <td>#${log.Log_ID}</td>
+                            <td>${log.Product_Name || 'Unknown Product'}</td>
+                            <td>${log.Employee_Name || 'Unknown User'}</td>
+                            <td style="color: ${log.Quantity_Adjusted > 0 ? 'var(--success)' : 'var(--danger)'}; font-weight: 500;">
+                                ${sign}${log.Quantity_Adjusted}
+                            </td>
+                            <td><span class="badge ${typeColor}">${log.Change_Type}</span></td>
+                        </tr>
+                    `;
+                    tbody.insertAdjacentHTML('beforeend', row);
+                });
+            } catch (err) {
+                console.error("Failed to load logs", err);
+            }
+        }
+        document.addEventListener('DOMContentLoaded', loadLogs);
+    </script>
+</body>
+</html>
